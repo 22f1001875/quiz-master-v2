@@ -29,13 +29,21 @@ with app.app_context():
     app.security.datastore.find_or_create_role(name = "user")
     db.session.commit()
 
-    if not app.security.datastore.find_user(mail = "quizmaster@mail.com"):
-        app.security.datastore.create_user(mail="quizmaster@mail.com",
+    if not app.security.datastore.find_user(email = "quizmaster@mail.com"):
+        app.security.datastore.create_user(email="quizmaster@mail.com",
                                            username="quizmaster",
                                            password=hash_password("quizmaster@123"),
                                            roles=['admin'])
         
+    if not app.security.datastore.find_user(email = "dummy@mail.com"):
+        app.security.datastore.create_user(email="dummy@mail.com",
+                                           username="dummy",
+                                           password=hash_password("dummy@123"),
+                                           roles=['user'])
+        
     db.session.commit()
+
+from application.routes import *
     
 
 if __name__=="__main__":
