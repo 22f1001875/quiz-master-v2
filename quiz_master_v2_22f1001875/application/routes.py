@@ -2,8 +2,10 @@ from flask import current_app as app,jsonify,request
 from .database import db
 from datetime import date,datetime
 from .models import *
-from flask_security import auth_required,roles_required,hash_password,current_user,roles_accepted #roles_accepted for getting multiple roles acces to routes
+from flask_security import auth_required,roles_required,current_user,login_user,roles_accepted #roles_accepted for getting multiple roles acces to routes,
+from werkzeug.security import check_password_hash,generate_password_hash
 
+#login- /login?include_auth_token,
 #quizaddition-/api/addquiz/<int:c_id>, deletion-/api/deletequiz/<int:q_id>
 #
 #
@@ -31,6 +33,38 @@ def user_home():
         "email": user.email
     })
 
+@app.route('/api/login',methods=['POST'])
+def user_login():
+    body=request.get_json()
+    email = body.get('email')
+    password = body.get('password')
+
+    if not email:
+        return jsonify({
+            "message" : "Email required"
+        }),400
+    user = app.security.datastore.find_user(email=email)
+    if user:
+        if check_password_hash(user.password,password):
+            if current_user.is_authenticated:
+                return jsonify({
+                    "message" : "Already logged in!"
+                }),400
+            login_user(user)
+            return jsonify({
+                "id" : user.id,
+                "username" : user.username,
+                "auth-token" : user.get_auth_token()
+            }),200
+        else:
+            return jsonify({
+                "message" : "Incorrect password"
+            }),400
+    else:
+        return jsonify({
+            "message" : "user not found"
+        }),404
+
 @app.route('/api/register', methods=['POST'])
 def user_reg():
     user_details=request.get_json()
@@ -38,7 +72,7 @@ def user_reg():
         if  not app.security.datastore.find_user(username = user_details['username']):
             app.security.datastore.create_user(email=user_details['email'],
                                            username=user_details['username'],
-                                           password=hash_password(user_details['password']),
+                                           password=generate_password_hash(user_details['password']),
                                            roles=['user'])
             db.session.commit()
             return jsonify({
@@ -202,7 +236,7 @@ def updatequestion(id):
 @app.route("/api/questionbyquiz/<int:q_id>")
 @auth_required('token')
 @roles_accepted('admin','user')
-def questionbychapter(q_id):
+def questionbyquiz(q_id):
     questionjson=[]
     question=Questions.query.filter_by(q_id=q_id).all()
     for q in question:

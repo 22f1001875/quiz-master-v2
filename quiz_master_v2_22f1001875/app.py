@@ -3,7 +3,8 @@ from application.database import db
 from application.models import User,Role
 from application.resources import api
 from application.config import LocalDevelopmentConfig
-from flask_security import Security,SQLAlchemyUserDatastore, hash_password
+from flask_security import Security,SQLAlchemyUserDatastore
+from werkzeug.security import generate_password_hash
 
 
 def start_app():
@@ -34,13 +35,13 @@ with app.app_context():
     if not app.security.datastore.find_user(email = "quizmaster@mail.com"):
         app.security.datastore.create_user(email="quizmaster@mail.com",
                                            username="quizmaster",
-                                           password=hash_password("quizmaster@123"),
+                                           password=generate_password_hash("quizmaster@123"),
                                            roles=['admin'])
         
     if not app.security.datastore.find_user(email = "dummy@mail.com"):
         app.security.datastore.create_user(email="dummy@mail.com",
                                            username="dummy",
-                                           password=hash_password("dummy@123"),
+                                           password=generate_password_hash("dummy@123"),
                                            roles=['user'])
         
     db.session.commit()
