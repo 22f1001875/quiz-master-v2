@@ -1,4 +1,4 @@
-from flask import current_app as app,jsonify,request
+from flask import current_app as app,jsonify,request,render_template
 from .database import db
 from datetime import date,datetime
 from .models import *
@@ -7,77 +7,74 @@ from werkzeug.security import check_password_hash,generate_password_hash
 
 #login- /login?include_auth_token,
 #quizaddition-/api/addquiz/<int:c_id>, deletion-/api/deletequiz/<int:q_id>
-#
-#
-#
-#
-#
 
 @app.route('/',methods=['GET'])
 def home():
-    return '<h1>This is THE HOMEPAGE</h1>'
-
-@app.route('/api/admin')
-@auth_required('token') #authentication
-@roles_required('admin') #RBAC
-def admin_home():
-    return "<h1>This is admin</h1>"
+    return render_template('index.html')
 
 @app.route('/api/user')
 @auth_required('token')
-@roles_required('user')
-def user_home():
+@roles_accepted('admin','user')
+def dash():
     user=current_user #to get all info of current user from session from token.
     return jsonify({
+        "id" : current_user.id,
         "username" : user.username,
-        "email": user.email
+        "email": user.email,
+        "roles" : [role.name for role in current_user.roles]
     })
 
 @app.route('/api/login',methods=['POST'])
 def user_login():
     body=request.get_json()
-    email = body.get('email')
+    emailorusername = body.get('emailorusername')
     password = body.get('password')
 
-    if not email:
+    if not emailorusername:
         return jsonify({
-            "message" : "Email required"
+            "message" : "Email/Username required"
         }),400
-    user = app.security.datastore.find_user(email=email)
-    if user:
-        if check_password_hash(user.password,password):
-            if current_user.is_authenticated:
-                return jsonify({
+    user = app.security.datastore.find_user(email=emailorusername)
+    if not user:
+        user = app.security.datastore.find_user(username=emailorusername)
+    if not user:
+        return jsonify({
+            "message" : "user not found"
+        }),404
+    if not check_password_hash(user.password,password):
+        return jsonify({
+                "message" : "Incorrect password"
+            }),400
+    if current_user.is_authenticated:
+            return jsonify({
                     "message" : "Already logged in!"
                 }),400
-            login_user(user)
-            return jsonify({
+    login_user(user)
+    return jsonify({
                 "id" : user.id,
                 "username" : user.username,
                 "auth-token" : user.get_auth_token()
             }),200
-        else:
-            return jsonify({
-                "message" : "Incorrect password"
-            }),400
-    else:
-        return jsonify({
-            "message" : "user not found"
-        }),404
+
 
 @app.route('/api/register', methods=['POST'])
 def user_reg():
     user_details=request.get_json()
     if not app.security.datastore.find_user(email = user_details['email']):
         if  not app.security.datastore.find_user(username = user_details['username']):
-            app.security.datastore.create_user(email=user_details['email'],
+            if user_details['email'] and user_details['username'] and user_details['password']:
+                app.security.datastore.create_user(email=user_details['email'],
                                            username=user_details['username'],
                                            password=generate_password_hash(user_details['password']),
                                            roles=['user'])
-            db.session.commit()
-            return jsonify({
+                db.session.commit()
+                return jsonify({
             "message" : "User created successfully"
             }),201
+            else:
+                return jsonify({
+        "message" : "Missing entries"
+            }),400
         else:
             return jsonify({
         "message" : "Username already taken"
