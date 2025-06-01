@@ -126,8 +126,8 @@ def updatequiz(q_id):
     if 'time_duration' in body:
         quiz.time_duration=body['time_duration']
         info['message']=info['message']+' time duration'
-    if 'quiz_date' in body:
-        unchecked_date=body['quiz_date']
+    if 'date' in body:
+        unchecked_date=body['date']
         temp_date_list=unchecked_date.split("-")
         quiz_date=date(int(temp_date_list[0]),int(temp_date_list[1]),int(temp_date_list[2]))
         quiz.date=quiz_date
@@ -157,6 +157,23 @@ def quizbychapter(c_id):
         quizjson.append(qdict)
     if quizjson:
         return quizjson
+        
+    return {
+            "message" : "No quizzes under this chapter"
+        },404
+
+@app.route("/api/quizbyquiz/<int:id>")
+@auth_required('token')
+@roles_accepted('admin','user')
+def quizbyquiz(id):
+    quiz=Quiz.query.filter_by(id=id).first()
+    qdict={}
+    qdict["id"] = quiz.id
+    qdict["remarks"] = quiz.remarks
+    qdict["time_duration"] = quiz.time_duration
+    qdict["date"] = quiz.date
+    qdict["c_id"] = quiz.c_id
+    return jsonify(qdict)
         
     return {
             "message" : "No quizzes under this chapter"

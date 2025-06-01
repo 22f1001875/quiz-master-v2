@@ -1,7 +1,9 @@
+import Apdatequiz from "./Apdatequiz.js";
 export default {
   template: `
   <div>
     <button :disabled="!$route.query.returnPath" class="btn btn-secondary" @click="goBack">Go Back</button>
+    <button class="btn btn-outline-primary">Update Quiz</button>
     <h2 class="display-5 mt-3 mb-3">Questions</h2>
     <div class="row">
       
@@ -66,8 +68,8 @@ export default {
             <button v-on:click="deleteQuestion" class="btn btn-outline-danger mt-2">Delete</button>
             </div>
         </div>
-        <div v-else class="text-muted">
-          <p>Select a question to edit</p>
+        <div v-else-if="upquiz">
+          <Apdatequiz :quizdetails="upquiz" :submitHandler="submithandler" :cancelHandler="cancelhandler"/>
         </div>
       </div>
 
@@ -77,13 +79,45 @@ export default {
   data() {
     return {
       questions: null,
-      selectedQuestion: null
+      selectedQuestion: null,
+      upquiz:null
     };
+  },
+  components:{
+    Apdatequiz
   },
   mounted() {
     this.initialLoad();
   },
   methods: {
+    submithandler(updatedQuiz) {
+    fetch(`/api/updatequiz/${updatedQuiz.id}`, {
+      method: 'POST',
+      headers: {
+        "Content-Type": "application/json",
+        "Authentication-Token": localStorage.getItem("authToken")
+      },
+      body: JSON.stringify(updatedQuiz)
+    })
+    .then(async response => {
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message);
+      }
+      return response.json();
+    })
+    .then(data => {
+      alert('Quiz updated successfully');
+      this.upquiz = data;
+    })
+    .catch(err => {
+      console.error(err);
+      alert(err.message);
+    });
+  },
+  cancelhandler() {
+    this.upquiz = null;
+  },
     initialLoad() {
       const q_Id = this.$route.params.id;
       fetch(`/api/questionbyquiz/${q_Id}`, {
@@ -106,7 +140,28 @@ export default {
       .catch(err => {
         console.error(err);
         alert(err.message);
-      });
+      })
+      fetch(`/api/quizbyquiz/${q_Id}`, {
+        method: 'GET',
+        headers: {
+          "Content-Type": "application/json",
+          "Authentication-Token": localStorage.getItem("authToken")
+        }
+      })
+      .then(async response => {
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.message);
+        }
+        return response.json();
+      })
+      .then(data => {
+        this.upquiz = data;
+      })
+      .catch(err => {
+        console.error(err);
+        alert(err.message);
+      })
     },
     selectQuestion(q) {
       this.selectedQuestion = { ...q };
