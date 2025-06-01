@@ -83,23 +83,24 @@ def user_reg():
         "message" : "Email already registered"
     }),400
         
-@app.route("/api/addquiz/<int:c_id>",methods=["POST"])
+@app.route("/api/addquiz",methods=["POST"])
 @auth_required('token')
 @roles_required('admin')
-def addquiz(c_id):
+def addquiz():
     body=request.get_json()
-    if 'time_duration' in body and 'quiz_date' in body and 'remarks' in body:
+    if 'time_duration' in body and 'date' in body and 'remarks' in body and 'c_id' in body:
         time_duration=body['time_duration']
-        unchecked_date=body['quiz_date']
+        unchecked_date=body['date']
         temp_date_list=unchecked_date.split("-")
         quiz_date=date(int(temp_date_list[0]),int(temp_date_list[1]),int(temp_date_list[2]))
         remarks=body['remarks']
+        c_id=body['c_id']
         new_quiz=Quiz(date=quiz_date,time_duration=time_duration,remarks=remarks,c_id=c_id)
         db.session.add(new_quiz)
         db.session.commit()
         return jsonify({
         "message" : "Quiz added sucessfully"
-        })
+        }),201
     return jsonify({
         "message": "Missing entries"
     }),400
@@ -163,27 +164,39 @@ def quizbychapter(c_id):
 
 ####-----Question Starts here-----####
 
-@app.route("/api/addquestion/<int:q_id>",methods=["POST"])
+@app.route("/api/addquestion", methods=["POST"])
 @auth_required('token')
 @roles_required('admin')
-def addquestion(q_id):
-    body=request.get_json()
-    if 'question' in body and 'op1' in body and 'op2' in body and 'op3' in body and 'op4' in body and 'cop' in body:
-        question=body['question']
-        op1=body['op1']
-        op2=body['op2']
-        op3=body['op3']
-        op4=body['op4']
-        cop=body['cop']
-        new_question=Questions(question=question,op1=op1,op2=op2,op3=op3,op4=op4,cop=cop,q_id=q_id)
-        db.session.add(new_question)
-        db.session.commit()
-        return jsonify({
-        "message" : "Question added sucessfully"
-        })
-    return jsonify({
-        "message": "Missing entries"
-    }),400
+def addquestion():
+    body = request.get_json()
+    
+    required_fields = ['question', 'options', 'correct_option', 'quiz_id']
+    if not all(field in body for field in required_fields):
+        return jsonify({"message": "Missing entries"}), 400
+
+    question = body['question']
+    options = body['options']
+    correct_option = int(body['correct_option']) 
+    quiz_id = body['quiz_id']
+
+    if len(options) != 4 or not (0 <= correct_option <= 3):
+        return jsonify({"message": "Invalid options or correct option index"}), 400
+
+    new_question = Questions(
+        question=question,
+        op1=options[0],
+        op2=options[1],
+        op3=options[2],
+        op4=options[3],
+        cop=correct_option,
+        q_id=quiz_id
+    )
+
+    db.session.add(new_question)
+    db.session.commit()
+
+    return jsonify({"message": "Question added successfully"})
+
 
 @app.route("/api/deletequestion/<int:id>",methods=["DELETE"])
 @auth_required('token')
@@ -247,12 +260,9 @@ def questionbyquiz(q_id):
         qdict["cop"] = q.cop
         qdict["q_id"] = q.q_id
         questionjson.append(qdict)
-    if questionjson:
-        return questionjson
-        
-    return {
-            "message" : "No questions under this quiz"
-        },404
+
+    return questionjson
+
 
 @app.route("/api/addscore/<int:q_id>",methods=["POST"])
 @auth_required('token')

@@ -4,6 +4,7 @@ import Register from "./components/Register.js"
 import Adminhome from "./components/Adminhome.js"
 import Chapterbysub from "./components/Chapterbysub.js"
 import AdminNavLayout from "./components/AdminNavLayout.js"
+import Questionsbyquiz from "./components/Questionsbyquiz.js"
 
 
 const routes = [
@@ -21,6 +22,10 @@ const routes = [
             {
                 path: 'subject/:id',
                 component: Chapterbysub
+            },
+            {
+                path: 'questions/:id',
+                component: Questionsbyquiz
             }
         ]
     }

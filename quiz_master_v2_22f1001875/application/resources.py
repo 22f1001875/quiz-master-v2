@@ -172,15 +172,13 @@ class ChapterApi(Resource):
             chapter.name=args['name']
             chapter.s_id=args['subject_id']
             db.session.commit()
-            return {
-            "message" : "Updating chapter successful"
-        }
+            chapdict={'name':chapter.name,'id':chapter.id}
+            return chapdict
         elif args['name']!=None and args['subject_id']==None:
             chapter.name=args['name']
             db.session.commit()
-            return {
-            "message" : "Updating chapter name successful"
-        }
+            chapdict={'name':chapter.name,'id':chapter.id}
+            return chapdict
         elif args['name']==None and args['subject_id']!=None:
             chapter.s_id=args['subject_id']
             db.session.commit()

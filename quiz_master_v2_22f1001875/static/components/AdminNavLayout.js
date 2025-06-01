@@ -6,7 +6,7 @@ export default {
     <div>
       <Navbar />
       <div class="container mx-auto mt-4">
-        <router-view></router-view>
+        <router-view :key="$route.fullPath"></router-view>
       </div>
     </div>
   `
